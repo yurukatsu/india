@@ -21,7 +21,11 @@
 │   ├── core/                    # コアファクター
 │   ├── core.yaml                # コアファクター → スタイルの対応定義
 │   └── core_factor_list.csv     # コアファクター一覧
+├── cgo/                         # 事前計算済み CGO スコア（scripts/build_cgo.py で生成）
+├── composite/                   # 事前計算済み 合成スコア v1（scripts/build_composite.py で生成）
 ├── map_code/                    # コードマッピング
+├── turnover/                    # 日次 価格・売買回転率（scripts/build_turnover.py で生成）
+├── turnover_org/                # 日次 価格・出来高の元データ（月次CSV）
 ├── universe/                    # ユニバース構成銘柄
 └── fx.csv                       # 為替（USD/INR）
 ```
@@ -57,7 +61,7 @@
 | カラム | 型 | 説明 |
 | --- | --- | --- |
 | `yyyymm` | int64 | 基準年月（例: `202012`） |
-| `gid` | object (str) | GID |
+| `gid` | object (str) | Global ID。優先順位付きで採番される（下記参照） |
 | `bid` | object (str) | BID |
 | `sedol` | object (str) | SEDOL |
 | `cusip` | object (str) | CUSIP |
@@ -79,6 +83,16 @@
 | `per` | float64 | 株価収益率（PER、倍） |
 | `dividend_yield` | float64 | 配当利回り（％）。欠損は `-1e9` |
 | `roe` | float64 | 自己資本利益率（％）。欠損は `-1e9` |
+
+**`gid`（Global ID）の採番ルール**
+
+以下の優先順位で最初に条件を満たしたコードを採用し、いずれも満たさないレコードは Reject（収録しない）。
+
+1. `bid` が 7 桁 → `bid` を採用
+2. `sedol` が 7 桁 → `sedol` を採用
+3. `cusip` が 9 桁 → `cusip` を採用
+
+本データの範囲では `bid` が全レコード 7 桁のため、`gid == bid` が常に成立している（全期間で確認済み）。異なる地域・ベンダーのデータと突き合わせる際は、`gid` が SEDOL や CUSIP 由来になり得る点に注意。
 
 #### `map_code/YYYYMM.pkl` — コードマッピング
 
@@ -114,11 +128,11 @@
 | `fcd` | object (str) | BARRAファクターコード。**文字列型**（`exp` 側は int64 なので結合時に型を揃える必要あり） |
 | `fctrtn` | float64 | 当月のファクターリターン（小数表記。例: `0.017375` = 1.74%） |
 
-全238ファクター分の行が毎月入る。
+全236ファクター分の行が毎月入る。
 
 #### `barra/fctcov/YYYYMM.pkl` — BARRAファクター共分散
 
-238ファクターの共分散行列を縦持ちにしたもの（上三角 + 対角 = 28,441行 = 238×239/2）。
+236ファクターの共分散行列を縦持ちにしたもの（上三角 + 対角 = 28,441行 = 238×239/2）。
 
 | カラム | 型 | 説明 |
 | --- | --- | --- |
@@ -263,7 +277,7 @@ styles = {k: [c.lower() for c in v] for k, v in styles.items()}
 
 #### `factor/alt/factor_list.csv` / `factor_group_list.csv` — オルタナティブファクター定義
 
-両ファイルは**内容が完全に同一**（448ファクター分の定義）。BOM付きUTF-8、`definition` 列に改行を含むため `pd.read_csv` でそのまま読める（`encoding='utf-8-sig'` 推奨）。定義されているファクターIDは448件あるが、実データが存在するのは上表の38ディレクトリのみ。
+両ファイルは**内容が完全に同一**（448ファクター分の定義）。BOM付きUTF-8、`definition` 列に改行を含むため `pd.read_csv` でそのまま読める（`encoding='utf-8-sig'` 推奨）。定義されているファクターIDは448件あるが、実データが存在するのは上表の36ディレクトリのみ。
 
 | カラム | 型 | 説明 |
 | --- | --- | --- |
@@ -285,7 +299,7 @@ styles = {k: [c.lower() for c in v] for k, v in styles.items()}
 
 #### `barra/barra_factor_list.csv` — BARRAファクター一覧
 
-238ファクター（MSCI GEMLTL モデル）の定義。
+236ファクター（MSCI GEMLTL モデル）の定義。
 
 | カラム | 型 | 説明 |
 | --- | --- | --- |
@@ -304,6 +318,44 @@ styles = {k: [c.lower() for c in v] for k, v in styles.items()}
 | `3-Countries` | 301〜388 | 88 | 国ファクター |
 | `4-Currencies` | 401〜488 | 88 | 通貨ファクター |
 | `5-Market` | 501 | 1 | マーケットファクター |
+
+#### `turnover/YYYYMM.pkl` — 日次 価格・売買回転率（生成データ）
+
+`turnover_org/*.csv` から `scripts/build_turnover.py` で生成。1ファイル = 1年月の日次データ。
+
+| カラム | 型 | 説明 |
+| --- | --- | --- |
+| `yyyymmdd` | int64 | 営業日（例: `20201201`） |
+| `bid` | object (str) | 銘柄ID（sedol から全期間 map_code の時点依存マップで変換。一致率100%） |
+| `price` | float64 | 調整後終値（`adj_close`）。**最新ヴィンテージで一貫調整済み** |
+| `turnover` | float64 | 日次売買回転率（出来高 ÷ 発行済株式数、小数） |
+
+同一 (bid, 日) に新旧 sedol の2系列が並存する場合（sedol 変更）は、当月 map_code の sedol 優先 → turnover 大で dedup 済み。
+
+#### `cgo/YYYYMM.pkl` — Capital Gain Overhang スコア（生成データ）
+
+`scripts/build_cgo.py` で生成（日次ベース、1ヶ月 = 21営業日換算、min = フル・ルックバック）。
+読み込みは `factorlab.cgo.load_cgo_monthly()`。
+
+| カラム | 型 | 説明 |
+| --- | --- | --- |
+| `yyyymm` | int64 | 基準年月 |
+| `bid` | object (str) | 銘柄ID |
+| `cgo_1m` 〜 `cgo_13m`, `cgo_24m`, `cgo_36m`, `cgo_60m` | float64 | 遡及期間別の CGO（Grinblatt-Han）。未成立の期間は NaN |
+
+#### `composite/YYYYMM.pkl` — 合成スコア v1（生成データ）
+
+`scripts/build_composite.py` で生成（仕様: `docs/analyze_memo/06_composite_strategy.md`）。
+読み込みは `factorlab.composite.load_composite()`。期間 200801〜202607。
+
+| カラム | 型 | 説明 |
+| --- | --- | --- |
+| `yyyymm` | int64 | 基準年月 |
+| `bid` | object (str) | 銘柄ID |
+| `sleeve_a` | float64 | リビジョン・スリーブ（rev1p/rev1r/rev3p/rev3r、Blom 標準化済み） |
+| `sleeve_b` | float64 | 価格系スリーブ（mom12_1 + gain側cgo_60m） |
+| `sleeve_d` | float64 | 規律スリーブ（doe/npop/dp_act − xfin_sp/xfin_cf/ta_grw） |
+| `comp_ew` | float64 | スリーブ等ウェイト合成（本命、Blom 標準化済み） |
 
 #### `fx.csv` — 為替レート
 
