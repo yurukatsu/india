@@ -28,6 +28,22 @@
 - CGO は `data/cgo/{t}.pkl` の `cgo_60m`（日次・N=1260営業日・min=フル・1期ラグ=前営業日、
   生成は `scripts/build_cgo.py`。元データは `data/turnover/`、PIT 規約は `docs/module/09_cgo.md`）
 
+## 6.2.5 データ参照先（入力・生成物の全パス）
+
+| データ | パス | 生成元 / 由来 | 使用箇所 |
+|---|---|---|---|
+| ユニバース・時価総額・GICS | `data/universe/{yyyymm}.pkl` | 元データ | パネル構築（size, cap, gics）・ベンチ定義 |
+| コアファクター 11本 | `data/factor/core/{yyyymm}.pkl` | 元データ（列定義は repo `README.md`） | スリーブ A / B(mom) / D の素材 |
+| 評価リターン | `data/barra/rtn/{yyyymm}.pkl` の `lag==1` | 元データ | `fwd_rtn`（検定・分位リターン） |
+| CGO スコア | `data/cgo/{yyyymm}.pkl` の `cgo_60m` | **生成**: `scripts/build_cgo.py` | スリーブ B の `cgo_gain`（正側のみ使用） |
+| （CGO の上流） | `data/turnover/{yyyymm}.pkl` | **生成**: `scripts/build_turnover.py`（元 CSV: `data/turnover_org/`） | CGO 計算の価格・回転率 |
+| **合成スコア（本戦略の出力）** | `data/composite/{yyyymm}.pkl` | **生成**: `scripts/build_composite.py`（実装 `src/factorlab/composite.py`） | `sleeve_a/b/d`, `comp_ew` |
+
+- 再生成の依存順: `turnover_org` → `build_turnover.py` → `build_cgo.py` → `build_composite.py`
+- 読み込み API: `fl.composite.load_composite()` / `fl.cgo.load_cgo_monthly()` /
+  パネルは `fl.data.build_panel()`（列仕様は `docs/module/README.md` の「パネルの契約」）
+- 各元データの列定義・欠損センチネル・GID 規則は repo 直下 `README.md` に集約
+
 ## 6.3 素材（12本）と符号
 
 | スリーブ | 素材 | 符号 | 意味 | 採用根拠（当プロジェクトの検証値） |
