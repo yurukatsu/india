@@ -19,6 +19,7 @@
 │   │   ├── factor_id_2/
 │   │   └── factor_id_n/
 │   ├── core/                    # コアファクター
+│   ├── core.yaml                # コアファクター → スタイルの対応定義
 │   └── core_factor_list.csv     # コアファクター一覧
 ├── map_code/                    # コードマッピング
 ├── universe/                    # ユニバース構成銘柄
@@ -145,7 +146,7 @@
 
 #### `factor/core/YYYYMM.pkl` — コアファクター
 
-126列の横持ちファクターテーブル。各ファクターの定義は `factor/core_factor_list.csv` を参照。
+126列の横持ちファクターテーブル。各ファクターの定義は `factor/core_factor_list.csv`、スタイルへの束ね方は `factor/core.yaml` を参照。
 
 キー列:
 
@@ -155,7 +156,7 @@
 | `bid` | object (str) | 銘柄ID |
 | `sedol` | object (str) | SEDOLコード |
 
-残り123列はすべてファクター値（`availm12` / `availm60` / `intwo` のみ int64、他は float64）。カテゴリ別の内訳:
+残り123列はすべてファクター値（`availm12` / `availm60` / `intwo` のみ int64、他は float64）。以下は性質による大まかな内訳（説明用のグルーピング。実際のスタイル定義は `factor/core.yaml` が正）:
 
 | カテゴリ | 主なカラム | 説明 |
 | --- | --- | --- |
@@ -177,6 +178,52 @@
 | --- | --- | --- |
 | `factor` | str | ファクター名（大文字。`factor/core` のカラム名を大文字化したもの） |
 | `description` | str | 計算式・定義のメモ（Markdown混じりの複数行テキスト。空欄・断片のみの行も多い） |
+
+#### `factor/core.yaml` — コアファクターのスタイル定義
+
+`factor/core` のファクターを **スタイル**（style）へ束ねるマッピング。トップレベルのキーがスタイル名、値がそのスタイルを構成するコアファクター名（大文字。`core_factor_list.csv` の `factor` 列と同じ表記で、`factor/core` のカラム名を大文字化したもの）のリスト。
+
+```yaml
+Stock Value:
+  - BP_EST
+  - BP_ACT
+Flow Value:
+  - EP_EST
+  ...
+```
+
+9スタイル・計112ファクター。スタイルスコアは「構成ファクターを個別に正規化（クロスセクションZスコア等）してから平均する」形で合成することを想定。
+
+| スタイル | 本数 | 内容 | 構成ファクター |
+| --- | --- | --- | --- |
+| Stock Value | 2 | 簿価ベースの割安度（ストック型バリュー） | `BP_EST`, `BP_ACT` |
+| Flow Value | 18 | 利益・CF・売上などフローに対する割安度（フロー型バリュー） | `EP_EST`, `EP_ACT`, `DP_EST`, `DP_ACT`, `SP_EST`, `SP_ACT`, `EBITDAEV_EST`, `EBITDAEV_ACT`, `CFP_EST`, `CFP_ACT`, `OCFP`, `FCFP`, `RDP`, `MARATIO`, `DLT_EP3`, `DLT_EP6`, `PEG_EST`, `PEG_ACT` |
+| Profitability | 25 | 収益性の水準とその変化（ROE/ROA/ROIC、利益率、対総資産比率、5年変化幅） | `ROE_EST`, `ROE_ACT`, `ROA_EST`, `ROA_ACT`, `ROIC_EST`, `ROIC_ACT`, `GPA_ACT`, `GM_ACT`, `NIS_EST`, `NIS_ACT`, `OIS_EST`, `OIS_ACT`, `OCFS`, `PROF`, `RE_TA`, `EBIT_TA`, `SALES_TA`, `NI_TA`, `PTI_TL`, `CHIN`, `DLT_GPA_5Y`, `DLT_ROE_5Y`, `DLT_ROA_5Y`, `DLT_OCFA_5Y`, `DLT_GPS_5Y` |
+| Growth | 11 | 売上・利益・資産・設備投資の成長率 | `LTG`, `SALES_GRW`, `OI_GRW`, `EPS_GRW`, `NI_GRW`, `PPE_GRW`, `TA_GRW`, `INVENT_GRW`, `EQ_GRW`, `CAPEX_GRW`, `IA` |
+| Shareholder Return | 5 | 株主還元・資本政策（配当、株式/負債の発行、ペイアウト） | `CSI`, `DOE`, `EISS`, `DISS`, `NPOP` |
+| Momentum | 9 | 価格モメンタムとアナリスト予想改定、売買回転率 | `REV1P`, `REV1R`, `REV3P`, `REV3R`, `MOM1`, `MOM12`, `MOM12_1`, `MOM60`, `TOVER` |
+| Volatility | 2 | リターン分布のリスク特性（ボラティリティ・歪度） | `VOLA60`, `SKEW60` |
+| Financial Quality | 28 | アクルーアル・外部資金調達・効率性・レバレッジ・会計不正/倒産スコア | `ACC_BS`, `ACC_CF`, `XFIN_BS`, `XFIN_CF`, `XFIN_SP`, `CURR`, `TA_TO`, `REC_TO`, `INVENT_TO`, `ACPY_TO`, `CCC`, `SALES_BEP`, `EQR`, `MVE_TL`, `EQ_TL`, `TDINT`, `OCFTD`, `DSR`, `GMI`, `AQI`, `DEPI`, `SGAI`, `LEVI`, `TD_TA`, `TL_TA`, `OSCORE`, `ZSCORE`, `MSCORE` |
+| Seasonality | 12 | 月次カレンダーダミー（1月〜12月） | `JAN`, `FEB`, `MAR`, `APR`, `MAY`, `JUN`, `JUL`, `AUG`, `SEP`, `OCT`, `NOV`, `DEC` |
+
+読み込み例:
+
+```python
+import yaml
+
+with open("data/factor/core.yaml") as f:
+    styles = yaml.safe_load(f)
+
+# core の実カラム名（小文字）へ変換
+styles = {k: [c.lower() for c in v] for k, v in styles.items()}
+```
+
+**注意点**
+
+- `Seasonality` の12ファクター（`JAN`〜`DEC`）は `factor/core` に実データが**存在しない**。基準年月（`dateym`）から生成する月次ダミーとして扱う。
+- 上記を除く100ファクターは `factor/core` のカラムに1対1で対応する。
+- 逆に `factor/core` にあってどのスタイルにも属さないカラムが23本ある: `tobin_q`, `gpa_act_fy`, `prof_ball_bs_fy`, `ta_grw_fy`, `availm12`, `availm60`, `illiq`, `buyback`, `gpy`, `npy`, `acc_cf2`, `wk_ta`, `sga_ta`, `rd_ta`, `ocf_ta`, `sgi`, `intwo`, `noa_fy`, `noa_grw_fy`, `mv`, `mv_usd`, `tmv`, `tmv_usd`（キー列 `dateym` / `bid` / `sedol` を除く）。サイズ（`mv*` / `tmv*`）やデータ可用性（`availm*`）など、スタイルの構成要素ではなく補助情報として使う列が中心。
+- 合成前に欠損センチネル `-1e9` の `NaN` 置換が必要（前述）。
 
 #### `factor/ai/YYYYMM.pkl` — AIスコア
 
