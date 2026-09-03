@@ -1,0 +1,197 @@
+factor,description
+BP_EST,# [
+BP_ACT,# [
+EP_EST,# [
+EP_ACT,# [
+DP_EST,# [
+DP_ACT,# [
+SP_EST,# [
+SP_ACT,# [
+EBITDAEV_EST,# [
+EBITDAEV_ACT,# [
+CFP_EST,# [
+CFP_ACT,# [
+OCFP,"# OCF/P 
+
+Null/"
+FCFP,"# FCF/P 
+
+Null/"
+RDP,"# R&D Expense / Market Value
+
+Null/"
+MARATIO,"# M&A Ratio
+
+Null/"
+DLT_EP3,"# delta E/P 3-months
+
+Null/"
+DLT_EP6,"# delta E/P 6-months
+
+Null/"
+TOBIN_Q,# 
+ROE_EST,# [
+ROE_ACT,# [
+ROA_EST,# [
+ROA_ACT,# [
+ROIC_EST,# [
+ROIC_ACT,# [
+GPA_ACT,# [
+GPA_ACT_FY,# [
+GM_ACT,# [
+NIS_EST,# [
+NIS_ACT,# [
+OIS_EST,# [
+OIS_ACT,# [
+OCFS,# [
+PROF,"# profitability 
+
+Null/"
+PROF_BALL_BS_FY,# [
+LTG,# [
+SALES_GRW,# [
+OI_GRW,# [
+EPS_GRW,# [
+NI_GRW,# [
+PPE_GRW,# [
+TA_GRW,# [
+TA_GRW_FY,# [
+INVENT_GRW,# [
+EQ_GRW,# [
+CAPEX_GRW,# [
+IA,# [
+CSI,"#  Composite Share Issuance
+
+Null/"
+REV1P,# 1
+REV1R,# 1
+REV3P,# 3
+REV3R,# 3
+MOM1,"# Momentum(1) 
+
+Null/"
+MOM12,"# Momentum(12) 
+
+Null/"
+MOM12_1,"# Momentum(12, 1)  
+
+Null/"
+AVAILM12,# Momentum (12) 
+MOM60,"# Momentum(60) 
+
+Null/"
+VOLA60,"# Volatility(60) 
+
+Null/"
+SKEW60,# 
+AVAILM60,"# Momentum (60), Volatility (60), Skewness (60) "
+TOVER,"# Turnover 
+
+Null/"
+ILLIQ,# Amihud
+DOE,"# DOE 
+
+Null/"
+BUYBACK,# 
+GPY,# 
+NPY,# 
+ACC_BS,"# Accruals(BS) 
+
+Null/"
+ACC_CF,"# Accruals(CF) 
+
+Null/"
+ACC_CF2,"# Accruals(S&P) 
+
+Null/"
+XFIN_BS,# 
+XFIN_CF,# 
+XFIN_SP,# 
+CURR,# [
+TA_TO,# [
+REC_TO,# [
+INVENT_TO,# [
+ACPY_TO,# [
+CCC,# [
+SALES_BEP,# 
+EQR,# 
+WK_TA,# 
+RE_TA,# 
+EBIT_TA,# ROCE
+MVE_TL,# 
+SALES_TA,# 
+SGA_TA,# 
+RD_TA,# 
+OCF_TA,# 
+EQ_TL,# 
+TDINT,# 
+OCFTD,# 
+PEG_EST,# [
+PEG_ACT,# [
+DSR,"# DSR 
+
+"
+GMI,"# GMI 
+
+"
+AQI,"# AQI 
+
+"
+SGI,# SGI
+DEPI,"# DEPI 
+
+"
+SGAI,"# SGAI 
+
+"
+LEVI,"# LEVI 
+
+"
+EISS,"# EISS 
+
+"
+DISS,"# DISS 
+
+"
+NPOP,"# Net Payout(5Y) / Operating income(5Y) 
+
+Null/"
+DLT_GPA_5Y,"# GP(t) - GP(t-5) / Total Assets(t-5) 
+
+Null/"
+DLT_ROE_5Y,"# NIBX(t) - NIBX(t-5) / Total Assets(t-5) 
+
+Null/"
+DLT_ROA_5Y,"# OPINC(t) - OPINC(t-5) / Total Assets(t-5) 
+
+Null/"
+DLT_OCFA_5Y,"# OCF(t) - OCF(t-5) / Total Assets(t-5) 
+
+Null/"
+DLT_GPS_5Y,"# GP(t) - GP(t-5) / Sales(t-5) 
+
+Null/"
+TD_TA,# 
+TL_TA,#  
+NI_TA,# 
+PTI_TL,# 
+INTWO,"# INTWO 
+
+"
+CHIN,"# (NIBX(t) - NIBX(t-1) / (|NIBX(t) + |NIBX(t-1)|) 
+
+Null/"
+NOA_FY,# [
+NOA_GRW_FY,# [
+MV,# 
+MV_USD,# 
+TMV,# 
+TMV_USD,# 
+OSCORE,"# Ohlson's score 
+= -1.32 - 0.407 * ln(TASSETS) + 6.03 * TL_TA "
+ZSCORE,"# Altman's z-score 
+= 1.2 * WK_TA + 1.4 * RE_TA + 3.3 * EBIT_TA + 0.6 * MVE_TL + SALES_TA
+
+Null/"
+MSCORE,"# M-SCORE 
+= -4.84 + 0.920 * DSR + 0.528 * GMI + 0.404 * AQI + 0.892 * SGI + 0.115 * DEPI - 0.172 * SGAI + 4.679 * ACC_CF "
