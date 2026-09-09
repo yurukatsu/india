@@ -1,0 +1,53 @@
+id,name,description
+rtn,Total Return (INR),当月トータルリターン、INR 建て、小数表記（barra/rtn の rtn / 100、lag=0）
+srtn,Specific Return (INR),BARRA モデルの固有（残差）リターン、INR 建て、小数表記（barra/rtn の srtn / 100、lag=0）
+rtn_usd,Total Return (USD),当月トータルリターン、USD 建て、小数表記。(1 + rtn) * fx[t-1] / fx[t] - 1（fx = fx.csv の USD/INR レート）
+srtn_usd,Specific Return (USD),固有リターンを rtn_usd と同じ式で機械的に USD 換算したもの。(1 + srtn) * fx[t-1] / fx[t] - 1。固有リターンは本来ニューメレール不変（為替は通貨ファクターに帰属）のため、リスク分解用途では srtn をそのまま使うことを推奨
+fwd_rtn_1m,Forward Total Return (INR) +1M,t+1 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_2m,Forward Total Return (INR) +2M,t+2 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_3m,Forward Total Return (INR) +3M,t+3 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_4m,Forward Total Return (INR) +4M,t+4 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_5m,Forward Total Return (INR) +5M,t+5 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_6m,Forward Total Return (INR) +6M,t+6 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_7m,Forward Total Return (INR) +7M,t+7 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_8m,Forward Total Return (INR) +8M,t+8 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_9m,Forward Total Return (INR) +9M,t+9 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_10m,Forward Total Return (INR) +10M,t+10 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_11m,Forward Total Return (INR) +11M,t+11 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_12m,Forward Total Return (INR) +12M,t+12 月の単月トータルリターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_1m,Forward Specific Return (INR) +1M,t+1 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_2m,Forward Specific Return (INR) +2M,t+2 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_3m,Forward Specific Return (INR) +3M,t+3 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_4m,Forward Specific Return (INR) +4M,t+4 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_5m,Forward Specific Return (INR) +5M,t+5 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_6m,Forward Specific Return (INR) +6M,t+6 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_7m,Forward Specific Return (INR) +7M,t+7 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_8m,Forward Specific Return (INR) +8M,t+8 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_9m,Forward Specific Return (INR) +9M,t+9 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_10m,Forward Specific Return (INR) +10M,t+10 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_11m,Forward Specific Return (INR) +11M,t+11 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_12m,Forward Specific Return (INR) +12M,t+12 月の単月固有リターン、INR 建て、小数表記。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_1m,Forward Total Return (USD) +1M,t+1 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_1m) * fx[t+1-1] / fx[t+1] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_2m,Forward Total Return (USD) +2M,t+2 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_2m) * fx[t+2-1] / fx[t+2] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_3m,Forward Total Return (USD) +3M,t+3 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_3m) * fx[t+3-1] / fx[t+3] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_4m,Forward Total Return (USD) +4M,t+4 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_4m) * fx[t+4-1] / fx[t+4] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_5m,Forward Total Return (USD) +5M,t+5 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_5m) * fx[t+5-1] / fx[t+5] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_6m,Forward Total Return (USD) +6M,t+6 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_6m) * fx[t+6-1] / fx[t+6] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_7m,Forward Total Return (USD) +7M,t+7 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_7m) * fx[t+7-1] / fx[t+7] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_8m,Forward Total Return (USD) +8M,t+8 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_8m) * fx[t+8-1] / fx[t+8] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_9m,Forward Total Return (USD) +9M,t+9 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_9m) * fx[t+9-1] / fx[t+9] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_10m,Forward Total Return (USD) +10M,t+10 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_10m) * fx[t+10-1] / fx[t+10] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_11m,Forward Total Return (USD) +11M,t+11 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_11m) * fx[t+11-1] / fx[t+11] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_rtn_usd_12m,Forward Total Return (USD) +12M,t+12 月の単月トータルリターン、USD 建て。(1 + fwd_rtn_12m) * fx[t+12-1] / fx[t+12] - 1。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_1m,Forward Specific Return (USD) +1M,t+1 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_2m,Forward Specific Return (USD) +2M,t+2 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_3m,Forward Specific Return (USD) +3M,t+3 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_4m,Forward Specific Return (USD) +4M,t+4 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_5m,Forward Specific Return (USD) +5M,t+5 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_6m,Forward Specific Return (USD) +6M,t+6 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_7m,Forward Specific Return (USD) +7M,t+7 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_8m,Forward Specific Return (USD) +8M,t+8 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_9m,Forward Specific Return (USD) +9M,t+9 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_10m,Forward Specific Return (USD) +10M,t+10 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_11m,Forward Specific Return (USD) +11M,t+11 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
+fwd_srtn_usd_12m,Forward Specific Return (USD) +12M,t+12 月の単月固有リターンを機械的に USD 換算（srtn_usd と同様の注意が必要）。将来月のデータが無い場合（期間末尾・脱落銘柄）は NaN
