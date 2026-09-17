@@ -106,3 +106,66 @@ sim = simulate_after_tax(
 ```bash
 uv run pytest
 ```
+
+## 最適化出力（bax）の評価: `alphaeval.bax`
+
+最適化システム bax の出力ディレクトリ（`A*.dat` `O*.dat` `S*.dat` `me_*.dat` `op_*.dat` `st_*.dat` `bc.txt`）を読み、
+パフォーマンス・エクスポージャー・保有・寄与・アルファ実現度・税控除後を評価する。ファイル仕様と単位の規約は
+`bax/reader.py` の冒頭に記載。ウェイト・リターン・回転率・コスト・`omega` は小数に変換して返す。
+
+```python
+from alphaeval.bax import BaxOutput, evaluate_bax, after_tax
+from alphaeval import InputStore, india_tax_schedule
+
+out = BaxOutput("bax/output/v0")
+store = InputStore("input/msci_india_imi")
+sector = (store.alpha("attributes/gics") // 1_000_000).reindex(
+    index=out.rebalance_dates
+)
+
+res = evaluate_bax(
+    out,
+    mapping=sector,
+    tax_schedule=india_tax_schedule("trust"),
+    tax_returns=store.returns("GEMLT", "rtn"),
+)  # 税は INR 建てリターンで評価
+res.summary  # 年率リターン、超過（コスト前後）、実現 TE / 推定 TE、IR、コストドラッグ、回転率 …
+res.yearly  # 年別
+(
+    res.exposures["risk_index"],
+    res.exposures["industry"],
+)  # アクティブエクスポージャー統計と制約への張り付き
+res.holdings  # 銘柄数、集中度、上下限への張り付き
+res.contributions, res.group_contributions  # 銘柄・業種別の寄与
+res.alpha_ic  # アルファスコアと翌月リターンの順位相関
+res.tax.annual, res.tax_table  # 税務年度別、税控除後の月次表
+```
+
+使い方の Notebook: `notebooks/bax_evaluation_example.ipynb`。
+
+### 最適化条件（NAV・制約）の確認
+
+`bc.txt` の全パラメータ（説明書の項番 1〜105）をカタログ化している（`bax/params.py`）。
+
+```python
+out.settings()  # NAV、TE 目標、個別・業種・リスクインデックス制約、回転率、コスト、アルファ、期間 を解釈付きで一覧
+out.describe_params()  # 全パラメータの値・既定値・既定値との差分（is_default）・説明
+out.initial_nav()  # 最初の op ファイルの NAV
+```
+
+### リスクモデルによる分解（Style / Industry / Country / Currency / Market / Specific）
+
+`A` ファイルのアクティブエクスポージャー（接頭辞 R = Style、I = Industry、C = Country、c = Currency）を
+`factor_list.csv` のファクター ID に対応付け、超過リターンと推定リスクをグループ別に分解する。
+
+```python
+from alphaeval.bax import factor_attribution, risk_decomposition
+
+fl = store.factor_list("GEMLT")
+groups, per_factor = factor_attribution(
+    out, store.factor_return("GEMLT"), fl
+)  # 超過リターン（コスト前）= Σ x_k f_k + specific
+rd = risk_decomposition(
+    out, lambda d: store.factor_covariance("GEMLT", d), fl
+)  # omega² = x'Fx（グループ別）+ specific
+```
