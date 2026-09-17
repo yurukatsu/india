@@ -220,8 +220,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Directory
-experiments/*
-!experiments/README.md
+# dev ブランチでは experiments/ を追跡する（main では experiments/* を無視）
+experiments/**/.ipynb_checkpoints/
 data/*
 
 # Claude
