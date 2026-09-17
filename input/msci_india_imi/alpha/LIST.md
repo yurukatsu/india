@@ -9,6 +9,7 @@
 | --- | --- | --- | --- |
 | `core` | `data/factor/core` | コアファクター 123 本（列ごとに 1 スコア） | ファイル年月 `dateym` |
 | `ai` | `data/factor/ai` | AI スコア（月内最終営業日のスナップショット） | ファイル年月 |
+| `attributes` | `data/universe` | 銘柄属性（GICS、サイズ区分、時価総額など。アルファではない） | ファイル年月 |
 | `alt` | `data/factor/alt/{id}` | オルタナティブファクター（`{id}_{name}`） | ファイル年月（`effective_yyyymmdd` ≤ 月末 のみ採用） |
 | `cgo` | `data/cgo` | Capital Gain Overhang（遡及期間別） | ファイル年月 |
 | `composite` | `data/composite` | 合成スコア v1（スリーブ別 + 等ウェイト合成） | ファイル年月 |
@@ -149,6 +150,18 @@
 ## ai
 
 期間 201608〜202604。スコア名は `ai_v1`（`data/factor/ai` の `ai` 列）。
+
+## attributes
+
+期間 200301〜202607。`data/universe` の銘柄属性（アルファではない）。
+
+| スコア | 内容 |
+| --- | --- |
+| `gics` | GICS コード（8 桁の整数。先頭 2 桁がセクター、4 桁が産業グループ） |
+| `size` | サイズ区分（1 = 大型、2 = 中型、3 = 小型） |
+| `cap` | 浮動株調整後時価総額（USD 百万） |
+| `shares` | 発行済株式数（百万株） |
+| `price` | 月末株価（現地通貨） |
 
 ## alt
 

@@ -5,7 +5,7 @@
 
 - ``univ/YYYYMM.dat``: ユニバース（MSCI India IMI 想定、浮動株調整時価総額ウェイト）
 - ``bm/{msci_india,msci_india_imi}/YYYYMM.dat``: ベンチマーク（時価総額ウェイトのプロキシ）
-- ``risk_models/GEMLTL/``: BARRA GEMLTL リスクモデル（exposure / factor_covariance /
+- ``risk_models/GEMLT/``: BARRA GEMLT リスクモデル（exposure / factor_covariance /
   factor_return / return / factor_list.csv / return_list.csv）
 - ``alpha/{core,ai,alt,cgo,composite,reprisk}/...``: 各種スコア
 
@@ -47,8 +47,11 @@ logger = logging.getLogger("build_input")
 #: ``factor/core`` / ``universe`` の欠損センチネル閾値。これ以下の値は NaN として扱う。
 SENTINEL_THRESHOLD = -1e8
 
-#: リスクモデル名（``barra_factor_list.csv`` の ``fac`` 接頭辞に対応）
-RISK_MODEL_NAME = "GEMLTL"
+#: リスクモデル名（出力ディレクトリ ``risk_models/{RISK_MODEL_NAME}``）
+RISK_MODEL_NAME = "GEMLT"
+
+#: ``barra_factor_list.csv`` の ``fac`` に付く接頭辞（``symbol`` 生成時に除去）
+FACTOR_ID_PREFIX = "GEMLTL_"
 
 #: 出力先のデフォルト（ユニバース名のディレクトリ）
 DEFAULT_OUT_DIR = Path("input") / "msci_india_imi"
@@ -179,7 +182,16 @@ GENERATED_GROUPS: dict[str, str] = {
 AI_SCORE_NAME = "ai_v1"
 
 #: アルファグループ一覧（生成順）
-ALPHA_GROUPS = ("core", "ai", "alt", *GENERATED_GROUPS)
+#: ``data/universe`` から属性として書き出す列とその説明（``alpha/attributes/{列名}/``）
+ATTRIBUTE_COLUMNS: dict[str, str] = {
+    "gics": "GICS コード（8 桁の整数。先頭 2 桁がセクター、4 桁が産業グループ）",
+    "size": "サイズ区分（1 = 大型、2 = 中型、3 = 小型）",
+    "cap": "浮動株調整後時価総額（USD 百万）",
+    "shares": "発行済株式数（百万株）",
+    "price": "月末株価（現地通貨）",
+}
+
+ALPHA_GROUPS = ("core", "ai", "alt", *GENERATED_GROUPS, "attributes")
 
 
 # ---------------------------------------------------------------------------
@@ -577,7 +589,7 @@ def build_factor_list(barra_factor_list: Path) -> pd.DataFrame:
         {'id': 102, 'symbol': 'BTOP', 'name': 'Book-to-Price', ...}
     """
     src = pd.read_csv(barra_factor_list)
-    prefix = f"{RISK_MODEL_NAME}_"
+    prefix = FACTOR_ID_PREFIX
     out = pd.DataFrame(
         {
             "id": src["fcd"].astype(int),
@@ -604,7 +616,7 @@ def build_factor_list(barra_factor_list: Path) -> pd.DataFrame:
 
 
 def build_risk_models(data_dir: Path, out_dir: Path) -> None:
-    """``{out_dir}/risk_models/GEMLTL/`` を生成する。
+    """``{out_dir}/risk_models/GEMLT/`` を生成する。
 
     Args:
         data_dir (Path): ``data/`` ディレクトリ。
@@ -1024,6 +1036,38 @@ def build_alpha_ai(data_dir: Path, out_dir: Path, use_gzip: bool) -> None:
     logger.info("alpha/ai/%s: %d ファイル", AI_SCORE_NAME, n)
 
 
+def build_alpha_attributes(data_dir: Path, out_dir: Path, use_gzip: bool) -> None:
+    """``{out_dir}/alpha/attributes/{列名}/YYYYMM.dat`` を ``data/universe`` の属性列から生成する。
+
+    アルファではないが、業種・サイズ・時価総額などの銘柄属性を alpha フォーマット（数値スコア）で
+    持たせると、評価ライブラリ側で同じ読み込み経路（``InputStore.alpha``）が使える。
+    ``gics`` は 8 桁の文字列を整数に変換する。欠損センチネルは除外する。
+
+    Args:
+        data_dir (Path): ``data/`` ディレクトリ。
+        out_dir (Path): 出力ルート（既定 ``input/msci_india_imi/``）。
+        use_gzip (bool): gzip 圧縮するかどうか。
+
+    Returns:
+        None
+    """
+    dest = out_dir / "alpha" / "attributes"
+    n = 0
+    for date, path in list_month_files(data_dir / "universe"):
+        df = pd.read_pickle(path)
+        cols = [c for c in ATTRIBUTE_COLUMNS if c in df.columns]
+        out = df[["bid", *cols]].copy()
+        if "gics" in cols:
+            out["gics"] = pd.to_numeric(
+                out["gics"].astype(str).str.strip(), errors="coerce"
+            )
+        out = replace_sentinel(out)
+        if out["bid"].duplicated().any():
+            raise ValueError(f"{path}: bid が重複しています")
+        n += write_score_columns(out, date, cols, dest, use_gzip)
+    logger.info("alpha/attributes: %d ファイル", n)
+
+
 def load_alt_factor_list(data_dir: Path) -> pd.DataFrame:
     """``factor/alt/factor_list.csv`` を読み込み、実データが存在する factor_id に絞って返す。
 
@@ -1151,6 +1195,7 @@ def write_alpha_list(data_dir: Path, out_dir: Path, groups: Sequence[str]) -> No
         "| --- | --- | --- | --- |",
         "| `core` | `data/factor/core` | コアファクター 123 本（列ごとに 1 スコア） | ファイル年月 `dateym` |",
         "| `ai` | `data/factor/ai` | AI スコア（月内最終営業日のスナップショット） | ファイル年月 |",
+        "| `attributes` | `data/universe` | 銘柄属性（GICS、サイズ区分、時価総額など。アルファではない） | ファイル年月 |",
         (
             "| `alt` | `data/factor/alt/{id}` | オルタナティブファクター（`{id}_{name}`） "
             "| ファイル年月（`effective_yyyymmdd` ≤ 月末 のみ採用） |"
@@ -1199,6 +1244,19 @@ def write_alpha_list(data_dir: Path, out_dir: Path, groups: Sequence[str]) -> No
             "## ai",
             "",
             f"期間 {files[0][0]}〜{files[-1][0]}。スコア名は `{AI_SCORE_NAME}`（`data/factor/ai` の `ai` 列）。",
+            "",
+        ]
+
+    if "attributes" in groups:
+        files = list_month_files(data_dir / "universe")
+        lines += [
+            "## attributes",
+            "",
+            f"期間 {files[0][0]}〜{files[-1][0]}。`data/universe` の銘柄属性（アルファではない）。",
+            "",
+            "| スコア | 内容 |",
+            "| --- | --- |",
+            *[f"| `{k}` | {v} |" for k, v in ATTRIBUTE_COLUMNS.items()],
             "",
         ]
 
@@ -1260,6 +1318,8 @@ def build_alpha(
     for name in GENERATED_GROUPS:
         if name in groups:
             build_alpha_generated(name, data_dir, out_dir, use_gzip, workers)
+    if "attributes" in groups:
+        build_alpha_attributes(data_dir, out_dir, use_gzip)
     write_alpha_list(data_dir, out_dir, groups)
 
 

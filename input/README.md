@@ -21,7 +21,7 @@ uv run python scripts/build_input.py all --out-dir input/another_universe
 │   │   ├── msci_india/YYYYMM.dat           # MSCI India プロキシ（universe.size ∈ {1,2}）
 │   │   ├── msci_india_imi/YYYYMM.dat       # MSCI India IMI プロキシ（全銘柄）
 │   │   └── LIST.md
-│   ├── risk_models/GEMLTL/                 # BARRA GEMLTL
+│   ├── risk_models/GEMLT/                 # BARRA GEMLT
 │   │   ├── exposure/YYYYMM.pkl             # date, bid, factor_id, value
 │   │   ├── factor_covariance/YYYYMM.pkl    # date, factor_id_1, factor_id_2, value（上三角 + 対角）
 │   │   ├── factor_return/YYYYMM.pkl        # date, factor_id, value
@@ -35,6 +35,7 @@ uv run python scripts/build_input.py all --out-dir input/another_universe
 │       ├── cgo/{cgo_Nm}/YYYYMM.dat         # Capital Gain Overhang
 │       ├── composite/{score}/YYYYMM.dat    # 合成スコア v1
 │       ├── reprisk/repr_current_rri/YYYYMM.dat  # RepRisk Index（RRI）
+│       ├── attributes/{gics,size,cap,...}/YYYYMM.dat  # 銘柄属性（data/universe 由来、アルファではない）
 │       └── LIST.md
 └── template/                               # フォーマット定義
 ```
@@ -61,9 +62,10 @@ SEDOL・CUSIP・ISIN・GID が混入していないことを確認済み（`gid 
 | `alpha/core` | `data/factor/core` | 列ごとに 1 スコア。`-1e9` センチネルを欠損として除外。`Seasonality` は生成しない |
 | `alpha/ai/ai_v1` | `data/factor/ai` | 月内最終営業日の値 |
 | `alpha/alt` | `data/factor/alt/{id}` | `effective_yyyymmdd ≤ 月末` の行のみ（ルックアヘッド防止）。同一 `bid` は最新発効日を採用 |
+| `alpha/attributes` | `data/universe` | `gics`（8 桁整数）/ `size` / `cap` / `shares` / `price` を数値スコアとして格納。業種・サイズ分析用 |
 | `alpha/cgo`, `alpha/composite`, `alpha/reprisk` | `data/cgo`, `data/composite`, `data/reprisk` | 列ごとに 1 スコア（`YYYYMM.pkl` / `YYYYMM.csv`）。NaN 行は除外 |
 
-### リターン（`risk_models/GEMLTL/return`）
+### リターン（`risk_models/GEMLT/return`）
 
 `barra/rtn` の `rtn` / `srtn` はともに INR 建て・％表記。これを小数に直し、`fx.csv`（1USD あたり INR）で USD 建てを追加する。
 さらに `lag = 1〜12` の行を将来単月リターン `fwd_*` として横持ちにする（計 52 列。一覧は `return_list.csv`）。

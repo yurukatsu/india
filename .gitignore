@@ -233,3 +233,5 @@ AGENTS.md
 input/**/*.dat
 input/**/*.dat.gz
 input/**/*.pkl
+
+bax/output
