@@ -8,6 +8,6 @@
 
 ## ブランチ運用
 
-- `main`: `experiments/` は `README.md` 以外を git 管理外にする（`.gitignore`）。
-- `dev`: `experiments/`（検証ノートブック・レポート・図）も含めて GitHub に上げる。`dev` の `.gitignore` は `experiments/` を無視しない。
-- `dev` → `main` のマージは `bash scripts/merge_dev_to_main.sh`（main 上で実行）。`experiments/` を除外し、`main` の `.gitignore` を維持したままマージコミットを作る。
+- `main`: `experiments/`（`README.md` 以外）と `input/**/*.dat` を git 管理外にする（`.gitignore`）。
+- `dev`: `experiments/`（検証ノートブック・レポート・図）と `input/**/*.dat`（評価用インプット）も含めて GitHub に上げる。`.pkl` と `.dat.gz` は両ブランチとも管理外。
+- `dev` → `main` のマージは `bash scripts/merge_dev_to_main.sh`（main 上で実行）。`main` の `.gitignore` に該当するファイルを除外し、`.gitignore` を維持したままマージコミットを作る。
