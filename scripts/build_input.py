@@ -191,7 +191,12 @@ ATTRIBUTE_COLUMNS: dict[str, str] = {
     "price": "月末株価（現地通貨）",
 }
 
-ALPHA_GROUPS = ("core", "ai", "alt", *GENERATED_GROUPS, "attributes")
+#: 自作 AI モデル（india-ai-model の export 出力）の取り込み元。``alpha/my_ai/{score_name}/`` に格納する。
+#: 元ディレクトリは ``{score_name}/YYYYMM.dat``（``#bid {score_name}`` ヘッダー、日付内 z スコア）と
+#: 任意の ``scores.csv``（説明・指標）を持つ。``--my-ai-dir`` で変更できる。
+DEFAULT_MY_AI_DIR = Path("..") / "india-ai-model" / "output"
+
+ALPHA_GROUPS = ("core", "ai", "alt", *GENERATED_GROUPS, "attributes", "my_ai")
 
 
 # ---------------------------------------------------------------------------
@@ -1036,6 +1041,108 @@ def build_alpha_ai(data_dir: Path, out_dir: Path, use_gzip: bool) -> None:
     logger.info("alpha/ai/%s: %d ファイル", AI_SCORE_NAME, n)
 
 
+def _my_ai_one(args: tuple[str, Path, Path, bool]) -> int:
+    """自作 AI モデル 1 本分の全年月を検証しつつ ``dat`` に書き出す（ワーカー関数）。
+
+    Args:
+        args (tuple[str, Path, Path, bool]): ``(score_name, src_dir, dest_root, use_gzip)``。
+
+    Returns:
+        int: 書き出したファイル数。
+    """
+    name, src, dest_root, use_gzip = args
+    n = 0
+    for date, path in list_month_files(src, (".dat",)):
+        _headers, body = _read_alpha_dat(path)
+        if not body:
+            continue
+        df = pd.DataFrame(body, columns=["bid", "value"])
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df = df.dropna(subset=["value"])
+        bids = validate_bids(df["bid"], str(path))
+        if bids.duplicated().any():
+            raise ValueError(f"{path}: bid が重複しています")
+        text = format_alpha_file(
+            name, bids.to_numpy(), df["value"].to_numpy(dtype=float)
+        )
+        write_text(dest_root / name / f"{date}.dat", text, use_gzip)
+        n += 1
+    return n
+
+
+def _read_alpha_dat(path: Path) -> tuple[list[str], list[list[str]]]:
+    """alpha 形式の ``dat``（``#`` ヘッダー + 空白区切り 2 列）を読む。
+
+    Args:
+        path (Path): ファイルパス。
+
+    Returns:
+        tuple[list[str], list[list[str]]]: ``(ヘッダー行, [[bid, value], ...])``。
+    """
+    headers, body = [], []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("#"):
+                headers.append(stripped)
+            else:
+                parts = stripped.replace(",", " ").split()
+                if len(parts) >= 2:
+                    body.append(parts[:2])
+    return headers, body
+
+
+def list_my_ai_models(my_ai_dir: Path) -> list[str]:
+    """取り込み元ディレクトリのモデル名（``YYYYMM.dat`` を含むサブディレクトリ）を列挙する。
+
+    Args:
+        my_ai_dir (Path): 取り込み元。
+
+    Returns:
+        list[str]: モデル名の昇順リスト。
+    """
+    if not my_ai_dir.is_dir():
+        return []
+    return sorted(
+        p.name
+        for p in my_ai_dir.iterdir()
+        if p.is_dir() and list_month_files(p, (".dat",))
+    )
+
+
+def build_alpha_my_ai(
+    my_ai_dir: Path, out_dir: Path, use_gzip: bool, workers: int
+) -> None:
+    """``{out_dir}/alpha/my_ai/{score_name}/YYYYMM.dat`` を自作 AI モデルの出力から生成する。
+
+    元ファイルはすでに alpha 形式だが、BID 検証・欠損除去・書式統一のため読み直して書き出す。
+    ``scores.csv`` があれば ``{out_dir}/alpha/my_ai/scores.csv`` にコピーする（LIST.md の生成に使う）。
+
+    Args:
+        my_ai_dir (Path): 取り込み元（``DEFAULT_MY_AI_DIR``）。
+        out_dir (Path): 出力ルート（既定 ``input/msci_india_imi/``）。
+        use_gzip (bool): gzip 圧縮するかどうか。
+        workers (int): 並列数。
+
+    Returns:
+        None
+    """
+    models = list_my_ai_models(my_ai_dir)
+    if not models:
+        logger.warning("alpha/my_ai: %s にモデル出力が無いためスキップ", my_ai_dir)
+        return
+    dest = out_dir / "alpha" / "my_ai"
+    jobs = [(m, my_ai_dir / m, dest, use_gzip) for m in models]
+    n = _run_parallel(_my_ai_one, jobs, workers)
+    scores = my_ai_dir / "scores.csv"
+    if scores.exists():
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(scores, dest / "scores.csv")
+    logger.info("alpha/my_ai: %d ファイル（%d モデル）", n, len(models))
+
+
 def build_alpha_attributes(data_dir: Path, out_dir: Path, use_gzip: bool) -> None:
     """``{out_dir}/alpha/attributes/{列名}/YYYYMM.dat`` を ``data/universe`` の属性列から生成する。
 
@@ -1196,6 +1303,7 @@ def write_alpha_list(data_dir: Path, out_dir: Path, groups: Sequence[str]) -> No
         "| `core` | `data/factor/core` | コアファクター 123 本（列ごとに 1 スコア） | ファイル年月 `dateym` |",
         "| `ai` | `data/factor/ai` | AI スコア（月内最終営業日のスナップショット） | ファイル年月 |",
         "| `attributes` | `data/universe` | 銘柄属性（GICS、サイズ区分、時価総額など。アルファではない） | ファイル年月 |",
+        "| `my_ai` | `../india-ai-model/output`（`--my-ai-dir`） | 自作 AI モデルのスコア（日付内 z スコア、`scores.csv` に説明と指標） | ファイル年月 |",
         (
             "| `alt` | `data/factor/alt/{id}` | オルタナティブファクター（`{id}_{name}`） "
             "| ファイル年月（`effective_yyyymmdd` ≤ 月末 のみ採用） |"
@@ -1247,6 +1355,43 @@ def write_alpha_list(data_dir: Path, out_dir: Path, groups: Sequence[str]) -> No
             "",
         ]
 
+    if "my_ai" in groups:
+        dest_my_ai = out_dir / "alpha" / "my_ai"
+        models = list_my_ai_models(dest_my_ai)
+        lines += [
+            "## my_ai",
+            "",
+            (
+                "自作 AI モデル（`india-ai-model` の export 出力）。値は日付内 z スコア。"
+                " `ai/ai_v1`（ベンダーの AI スコア）とは別グループ。"
+            ),
+            "",
+        ]
+        scores_path = dest_my_ai / "scores.csv"
+        if scores_path.exists():
+            sc = pd.read_csv(scores_path).set_index("score_name")
+            lines += [
+                "| スコア | 内容 | 期間 | IC (drtn 1m) | ICIR | L/S 回転率 |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
+            for m in models:
+                if m in sc.index:
+                    r = sc.loc[m]
+                    lines.append(
+                        f"| `{m}` | {r.get('description', '')} | {r.get('date_min', '')}〜{r.get('date_max', '')}"
+                        f" | {r.get('ic_drtn_1m', float('nan')):.3f} | {r.get('icir_drtn_1m', float('nan')):.2f}"
+                        f" | {r.get('turnover_ls', float('nan')):.2f} |"
+                    )
+                else:
+                    lines.append(f"| `{m}` | | | | | |")
+            lines.append("")
+            lines.append(
+                "指標は `india-ai-model` 側の評価（`scores.csv`）。`alphaeval` での再評価は別途行う。"
+            )
+        else:
+            lines += [f"- `{m}`" for m in models]
+        lines.append("")
+
     if "attributes" in groups:
         files = list_month_files(data_dir / "universe")
         lines += [
@@ -1295,7 +1440,12 @@ def write_alpha_list(data_dir: Path, out_dir: Path, groups: Sequence[str]) -> No
 
 
 def build_alpha(
-    data_dir: Path, out_dir: Path, use_gzip: bool, workers: int, groups: Sequence[str]
+    data_dir: Path,
+    out_dir: Path,
+    use_gzip: bool,
+    workers: int,
+    groups: Sequence[str],
+    my_ai_dir: Path = DEFAULT_MY_AI_DIR,
 ) -> None:
     """``{out_dir}/alpha/`` 配下を生成する。
 
@@ -1305,6 +1455,7 @@ def build_alpha(
         use_gzip (bool): gzip 圧縮するかどうか。
         workers (int): 並列数。
         groups (Sequence[str]): 生成するグループ（:data:`ALPHA_GROUPS` の部分集合）。
+        my_ai_dir (Path): 自作 AI モデル出力の取り込み元。
 
     Returns:
         None
@@ -1320,6 +1471,8 @@ def build_alpha(
             build_alpha_generated(name, data_dir, out_dir, use_gzip, workers)
     if "attributes" in groups:
         build_alpha_attributes(data_dir, out_dir, use_gzip)
+    if "my_ai" in groups:
+        build_alpha_my_ai(my_ai_dir, out_dir, use_gzip, workers)
     write_alpha_list(data_dir, out_dir, groups)
 
 
@@ -1400,6 +1553,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-clean", action="store_true", help="既存の出力を削除せずに上書きする"
     )
+    parser.add_argument(
+        "--my-ai-dir",
+        type=Path,
+        default=DEFAULT_MY_AI_DIR,
+        help="自作 AI モデル出力（alpha/my_ai）の取り込み元ディレクトリ",
+    )
     return parser.parse_args(argv)
 
 
@@ -1431,7 +1590,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     if "risk" in targets:
         build_risk_models(data_dir, out_dir)
     if "alpha" in targets:
-        build_alpha(data_dir, out_dir, args.gzip, args.workers, args.alpha_groups)
+        build_alpha(
+            data_dir,
+            out_dir,
+            args.gzip,
+            args.workers,
+            args.alpha_groups,
+            args.my_ai_dir,
+        )
     logger.info("完了")
 
 
