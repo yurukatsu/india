@@ -37,6 +37,7 @@ uv run python scripts/build_input.py all --out-dir input/another_universe
 │       ├── reprisk/repr_current_rri/YYYYMM.dat  # RepRisk Index（RRI）
 │       ├── attributes/{gics,size,cap,...}/YYYYMM.dat  # 銘柄属性（data/universe 由来、アルファではない）
 │       ├── my_ai/{score_name}/YYYYMM.dat  # 自作 AI モデル（india-ai-model の export、--my-ai-dir）
+│       ├── blend/{name}/YYYYMM.dat        # 複合スコア（scripts/build_blend.py。定義は blend/README.md）
 │       └── LIST.md
 └── template/                               # フォーマット定義
 ```
@@ -64,6 +65,7 @@ SEDOL・CUSIP・ISIN・GID が混入していないことを確認済み（`gid 
 | `alpha/ai/ai_v1` | `data/factor/ai` | 月内最終営業日の値 |
 | `alpha/alt` | `data/factor/alt/{id}` | `effective_yyyymmdd ≤ 月末` の行のみ（ルックアヘッド防止）。同一 `bid` は最新発効日を採用 |
 | `alpha/my_ai` | `../india-ai-model/output` | 自作 AI モデルのスコア（日付内 z スコア）を BID 検証のうえ再書き出し。`scores.csv` を同梱し LIST.md に説明・指標を載せる。ベンダーの `alpha/ai/ai_v1` とは別グループ |
+| `alpha/blend` | `input` の他の alpha | 2 スコアを各月 Blom 化して加重平均し再 Blom 化した複合スコア。`scripts/build_blend.py --score-a … --score-b … --weights …` で生成し、定義は `alpha/blend/README.md` に出力 |
 | `alpha/attributes` | `data/universe` | `gics`（8 桁整数）/ `size` / `cap` / `shares` / `price` を数値スコアとして格納。業種・サイズ分析用 |
 | `alpha/cgo`, `alpha/composite`, `alpha/reprisk` | `data/cgo`, `data/composite`, `data/reprisk` | 列ごとに 1 スコア（`YYYYMM.pkl` / `YYYYMM.csv`）。NaN 行は除外 |
 
