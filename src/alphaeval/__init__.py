@@ -29,6 +29,13 @@ from alphaeval.quantile import (
     turnover,
     weight_portfolio,
 )
+from alphaeval.report import (
+    AlphaReport,
+    compute_alpha_report,
+    plot_cross_alpha_bars,
+    plot_cumulative,
+    summary_table,
+)
 from alphaeval.tax import (
     TaxSchedule,
     TaxSimulationResult,
@@ -40,12 +47,14 @@ from alphaeval.tax import (
 
 __all__ = [
     "AlphaEvaluation",
+    "AlphaReport",
     "InputStore",
     "QuantileResult",
     "TaxSchedule",
     "TaxSimulationResult",
     "buffered_membership",
     "cap_weights",
+    "compute_alpha_report",
     "constant_tax_schedule",
     "coverage",
     "coverage_summary",
@@ -58,10 +67,13 @@ __all__ = [
     "performance_summary",
     "performance_table",
     "period_returns",
+    "plot_cross_alpha_bars",
+    "plot_cumulative",
     "portfolio_returns",
     "quantile_analysis",
     "rank_percentile",
     "simulate_after_tax",
+    "summary_table",
     "tax_schedule_from_frame",
     "turnover",
     "weight_portfolio",

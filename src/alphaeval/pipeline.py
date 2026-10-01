@@ -27,7 +27,7 @@ class AlphaEvaluation:
         quantiles (dict[float, QuantileResult]): バッファ幅 → 分位分析結果。
         benchmark_returns (pd.Series | None): ベンチマークリターン系列。
         universe_returns (pd.Series | None): ユニバース（ウェイト加重）リターン系列。
-        tax (dict[tuple[float, int], TaxSimulationResult]): ``(バッファ幅, 分位)`` → 税シミュレーション結果。
+        tax (dict[tuple[float, str], TaxSimulationResult]): ``(バッファ幅, 分位ラベル)`` → 税シミュレーション結果。
         summary (pd.DataFrame): バッファ幅 × 分位ごとの基本指標（税控除後を含む）。
     """
 
@@ -38,7 +38,7 @@ class AlphaEvaluation:
     quantiles: dict[float, QuantileResult]
     benchmark_returns: pd.Series | None
     universe_returns: pd.Series | None
-    tax: dict[tuple[float, int], TaxSimulationResult] = field(default_factory=dict)
+    tax: dict[tuple[float, str], TaxSimulationResult] = field(default_factory=dict)
     summary: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
@@ -56,7 +56,8 @@ def evaluate_alpha(
     ic_horizons: Sequence[int] = (1, 3, 6, 12),
     ic_method: str = "spearman",
     tax_schedule: TaxSchedule | None = None,
-    tax_quantiles: Sequence[int] = (1,),
+    tax_quantiles: Sequence[str] | None = None,
+    q1_is_top: bool = False,
     cost_buy: float = 0.0,
     cost_sell: float = 0.0,
     periods_per_year: int = 12,
@@ -78,7 +79,8 @@ def evaluate_alpha(
         ic_horizons (Sequence[int]): IC を計算するホライズン。
         ic_method (str): ``"spearman"`` または ``"pearson"``。
         tax_schedule (TaxSchedule | None): 指定時は ``tax_quantiles`` の分位について税控除後評価を行う。
-        tax_quantiles (Sequence[int]): 税シミュレーションを行う分位番号。
+        tax_quantiles (Sequence[str] | None): 税シミュレーションを行う分位ラベル。``None`` なら最上位のみ。
+        q1_is_top (bool): ``True`` なら ``Q1`` を最上位にする（既定は ``Q{n}`` が最上位）。
         cost_buy (float): 買付コスト率。
         cost_sell (float): 売却コスト率。
         periods_per_year (int): 年率換算の期間数。
@@ -127,6 +129,7 @@ def evaluate_alpha(
             size,
             max_weight,
             higher_is_better,
+            q1_is_top=q1_is_top,
         )
         quantiles[b] = qres
         ret = qres.returns.iloc[burn_in:]
@@ -136,12 +139,11 @@ def evaluate_alpha(
         for col in table.columns:
             rows[(f"buffer={b:g}", col)] = table[col]
         if tax_schedule is not None:
-            for q in tax_quantiles:
+            for label in tax_quantiles or (qres.top,):
                 sim = simulate_after_tax(
-                    qres.weights[q], returns, tax_schedule, cost_buy, cost_sell
+                    qres.weights[label], returns, tax_schedule, cost_buy, cost_sell
                 )
-                tax_results[(b, q)] = sim
-                label = qres.labels[q - 1]
+                tax_results[(b, label)] = sim
                 net = sim.returns.iloc[burn_in:]
                 base = rows[(f"buffer={b:g}", label)]
                 extra = {}

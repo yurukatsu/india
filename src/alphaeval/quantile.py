@@ -398,9 +398,11 @@ class QuantileResult:
     """分位分析の結果。
 
     Attributes:
-        weights (dict[int, pd.DataFrame]): 分位番号 → ウェイトパネル。
+        weights (dict[str, pd.DataFrame]): 分位ラベル（``"Q1"``…）→ ウェイトパネル。
         returns (pd.DataFrame): 日付 × 分位（列名 ``Q1``…）のリターン。
             ``spread`` 列（最上位 − 最下位）を含む。
+        top (str): 最上位（スコアが最も良い）分位のラベル。既定の規約では ``Q{n}``。
+        bottom (str): 最下位分位のラベル。
         turnover (pd.DataFrame): 日付 × 分位の片道回転率。
         n_holdings (pd.DataFrame): 日付 × 分位の保有銘柄数。
         buffer (float): 使用したバッファ幅。
@@ -408,7 +410,7 @@ class QuantileResult:
         scheme (str): ウェイト方式。
     """
 
-    weights: dict[int, pd.DataFrame]
+    weights: dict[str, pd.DataFrame]
     returns: pd.DataFrame
     turnover: pd.DataFrame
     n_holdings: pd.DataFrame
@@ -416,6 +418,8 @@ class QuantileResult:
     n_quantiles: int = 5
     scheme: str = "equal"
     labels: list[str] = field(default_factory=list)
+    top: str = "Q5"
+    bottom: str = "Q1"
 
 
 def quantile_analysis(
@@ -429,8 +433,13 @@ def quantile_analysis(
     max_weight: float | None = None,
     higher_is_better: bool = True,
     missing_return: float | None = 0.0,
+    q1_is_top: bool = False,
 ) -> QuantileResult:
     """分位ポートフォリオを構築し、分位別リターン・回転率を計算する。
+
+    分位ラベルの規約: 既定（``q1_is_top=False``）では **``Q{n}`` がスコア最上位**、``Q1`` が最下位
+    （合成スコア仕様書と同じ）。``q1_is_top=True`` で ``Q1`` を最上位にする。
+    ``spread`` 列は常に「最上位 − 最下位」。
 
     Args:
         score (pd.DataFrame): 日付 × 銘柄のスコア。
@@ -443,33 +452,41 @@ def quantile_analysis(
         max_weight (float | None): 分位内 1 銘柄上限。
         higher_is_better (bool): スコアが高いほど良いか。
         missing_return (float | None): 保有銘柄のリターン欠損時の扱い（:func:`portfolio_returns`）。
+        q1_is_top (bool): ``True`` なら ``Q1`` を最上位にする（既定は ``Q{n}`` が最上位）。
 
     Returns:
         QuantileResult: 分位ごとのウェイト・リターン・回転率。
 
     Examples:
         >>> res = quantile_analysis(score, rtn, univ, n_quantiles=5, buffer=0.1)  # doctest: +SKIP
-        >>> res.returns[["Q1", "Q5", "spread"]].mean() * 12  # doctest: +SKIP
+        >>> res.returns[[res.top, res.bottom, "spread"]].mean() * 12  # doctest: +SKIP
     """
     if scheme != "equal" and size is None:
         if universe is None:
             raise ValueError("size 系のウェイトには size または universe が必要です")
         size = universe
     pct = rank_percentile(score, universe, higher_is_better)
-    weights: dict[int, pd.DataFrame] = {}
+    weights: dict[str, pd.DataFrame] = {}
     rets: dict[str, pd.Series] = {}
     tos: dict[str, pd.Series] = {}
     counts: dict[str, pd.Series] = {}
     labels = [f"Q{q}" for q in range(1, n_quantiles + 1)]
-    for q, label in zip(range(1, n_quantiles + 1), labels):
-        member = quantile_membership(pct, n_quantiles, q, buffer)
+    # rank_from_top = 1 が最上位。ラベルは規約に応じて割り当てる
+    for rank_from_top in range(1, n_quantiles + 1):
+        label = (
+            labels[rank_from_top - 1]
+            if q1_is_top
+            else labels[n_quantiles - rank_from_top]
+        )
+        member = quantile_membership(pct, n_quantiles, rank_from_top, buffer)
         w = weight_portfolio(member, scheme, size, max_weight)
-        weights[q] = w
+        weights[label] = w
         rets[label] = portfolio_returns(w, returns, missing_return)
         tos[label] = turnover(w, returns)
         counts[label] = member.sum(axis=1)
-    ret_df = pd.DataFrame(rets)
-    ret_df["spread"] = ret_df[labels[0]] - ret_df[labels[-1]]
+    top, bottom = (labels[0], labels[-1]) if q1_is_top else (labels[-1], labels[0])
+    ret_df = pd.DataFrame(rets)[labels]
+    ret_df["spread"] = ret_df[top] - ret_df[bottom]
     return QuantileResult(
         weights=weights,
         returns=ret_df,
@@ -479,4 +496,6 @@ def quantile_analysis(
         n_quantiles=n_quantiles,
         scheme=scheme,
         labels=labels,
+        top=top,
+        bottom=bottom,
     )
