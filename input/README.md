@@ -37,6 +37,7 @@ uv run python scripts/build_input.py all --out-dir input/another_universe
 │       ├── reprisk/repr_current_rri/YYYYMM.dat  # RepRisk Index（RRI）
 │       ├── attributes/{gics,size,cap,...}/YYYYMM.dat  # 銘柄属性（data/universe 由来、アルファではない）
 │       ├── my_ai/{score_name}/YYYYMM.dat  # 自作 AI モデル（india-ai-model の export、--my-ai-dir）
+│       ├── my_ai_neu/{name}/YYYYMM.dat    # 自作 AI モデルの中立化版（scripts/build_neutralize.py、定義は my_ai_neu/README.md）
 │       └── LIST.md
 └── template/                               # フォーマット定義
 ```
@@ -65,6 +66,7 @@ SEDOL・CUSIP・ISIN・GID が混入していないことを確認済み（`gid 
 | `alpha/alt` | `data/factor/alt/{id}` | `effective_yyyymmdd ≤ 月末` の行のみ（ルックアヘッド防止）。同一 `bid` は最新発効日を採用 |
 | `alpha/my_ai` | `../india-ai-model/output` | 自作 AI モデルのスコア（日付内 z スコア）を BID 検証のうえ再書き出し。`scores.csv` を同梱し LIST.md に説明・指標を載せる。ベンダーの `alpha/ai/ai_v1` とは別グループ |
 | `alpha/composite/comp_ew_{w}_ai_{..}`, `..._ai_hl1_{..}` | `composite/comp_ew`, `my_ai/ens_lgbm_dnn(_hl1)` | 2 スコアを各月 Blom 化して加重平均し再 Blom 化した複合スコア（`scripts/build_blend.py`）。定義は `alpha/composite/README.md` |
+| `alpha/my_ai_neu` | `my_ai/*`, `univ/`, `attributes/gics`, `core/vola60` | 各月ユニバース内でスコアを Blom 化し、log 時価総額・`vola60`・セクターダミーへの OLS 残差を再 Blom 化（`scripts/build_neutralize.py`） |
 | `alpha/attributes` | `data/universe` | `gics`（8 桁整数）/ `size` / `cap` / `shares` / `price` を数値スコアとして格納。業種・サイズ分析用 |
 | `alpha/cgo`, `alpha/composite`, `alpha/reprisk` | `data/cgo`, `data/composite`, `data/reprisk` | 列ごとに 1 スコア（`YYYYMM.pkl` / `YYYYMM.csv`）。NaN 行は除外 |
 
@@ -102,6 +104,10 @@ uv run python scripts/build_input.py all                       # univ / bm / ris
 uv run python scripts/build_input.py alpha --alpha-groups my_ai --my-ai-dir /path/to/india-ai-model/output   # 自作 AI の export 先を指定
 uv run python scripts/build_blend.py --score-a composite/comp_ew --score-b my_ai/ens_lgbm_dnn     --weights 50 60 70 80 90 --name "comp_ew_{a}_ai_{b}"     --group composite
 uv run python scripts/build_blend.py --score-a composite/comp_ew --score-b my_ai/ens_lgbm_dnn_hl1 --weights 50 60 70 80 90 --name "comp_ew_{a}_ai_hl1_{b}" --group composite
+# AI スコアの中立化版（サイズ + vola60 + セクター）とその複合
+uv run python scripts/build_neutralize.py --score my_ai/ens_lgbm_dnn --size --sector --controls core/vola60 --name ens_lgbm_dnn_neu    --group my_ai_neu
+uv run python scripts/build_neutralize.py --score my_ai/ens_lgbm_dnn --size --sector                        --name ens_lgbm_dnn_neu_sz --group my_ai_neu
+uv run python scripts/build_blend.py --score-a composite/comp_ew --score-b my_ai_neu/ens_lgbm_dnn_neu --weights 50 60 70 80 90 --name "comp_ew_{a}_ai_neu_{b}" --group composite
 ```
 
 最適化（bax）の `fn_alpha` には `input/msci_india_imi/alpha/composite/<score>/$L.dat` を指定する（ファイル形式は bax の alpha 入力と同じ `#bid score` + 空白区切り）。
