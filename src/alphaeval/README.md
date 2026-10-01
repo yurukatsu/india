@@ -12,6 +12,7 @@ alphaeval/
 ├── ic.py          # IC（Spearman / Pearson）、IC 要約、IC decay
 ├── quantile.py    # 分位分析（通常 / バッファ付き、等・時価・√時価ウェイト、キャップ、回転率）
 ├── metrics.py     # Return / Risk / R/R / MaxDD / Turnover / TE / IR / β
+├── report.py      # アルファ横断レポート（Q5 EW/CW 超過・Q5−Q1・税後・IC の累積図、年率棒グラフ、指標表。drtn/srtn 対応）
 ├── tax/
 │   ├── schedule.py  # 税率スケジュール（インド FPI プリセット、CSV 読み込み、定数）
 │   └── ledger.py    # FIFO ロット台帳による税控除後シミュレーション
@@ -29,7 +30,7 @@ alphaeval/
 
 - 日付は `YYYYMM`（月末扱い）/ `YYYYMMDD` の整数でも `Timestamp` でもよい。内部では `DatetimeIndex` に揃える。
 - 順位パーセンタイルは中央順位 `(rank − 0.5) / N`。「上位 20%」は `p ≥ 0.8`。
-- 分位番号は `Q1` が最上位（スコア高）。`higher_is_better=False` で反転。
+- 分位番号は **`Q5`（`Q{n}`）が最上位（スコア高）**、`Q1` が最下位（合成スコア仕様書と同じ規約）。`QuantileResult.top` / `.bottom` にラベルが入る。`q1_is_top=True` で旧規約（`Q1` が最上位）。`higher_is_better=False` でスコアの向きを反転。
 
 ## 使い方
 
@@ -168,4 +169,46 @@ groups, per_factor = factor_attribution(
 rd = risk_decomposition(
     out, lambda d: store.factor_covariance("GEMLT", d), fl
 )  # omega² = x'Fx（グループ別）+ specific
+```
+
+## アルファ横断レポート: `alphaeval.report`
+
+スコアごとに `compute_alpha_report` で系列を作り、複数スコアをまとめて図表にする。リターン種別は辞書で渡す
+（例: `{"drtn": トータルリターン, "srtn": 固有リターン}`）。累積は `drtn` が複利累積、`srtn` が累和。
+
+```python
+from alphaeval import (
+    compute_alpha_report,
+    plot_cumulative,
+    plot_cross_alpha_bars,
+    summary_table,
+    india_tax_schedule,
+)
+
+returns = {
+    "drtn": store.returns("GEMLT", "rtn"),
+    "srtn": store.returns("GEMLT", "srtn"),
+}
+reports = {
+    name: compute_alpha_report(
+        name,
+        store.alpha(path),
+        univ,
+        bm,
+        returns,
+        tax_schedule=india_tax_schedule("trust"),
+        cost_buy=0.0015,
+        cost_sell=0.0025,
+        burn_in=12,
+    )
+    for name, path in {
+        "comp_ew": "composite/comp_ew",
+        "ai": "my_ai/ens_lgbm_dnn",
+    }.items()
+}
+plot_cumulative(
+    reports
+)  # Q5 EW 超過 / Q5−Q1 / Q5 CW 超過 / 税控除後 / IC（累和・移動平均）× drtn, srtn
+plot_cross_alpha_bars(reports)  # 同じ指標の年率（IC は平均）をスコア横断の棒グラフで
+summary_table(reports)  # 行 = スコア、列 = (リターン種別, 指標) の表
 ```

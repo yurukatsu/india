@@ -93,10 +93,21 @@ def test_quantile_analysis_shapes() -> None:
     univ = pd.DataFrame(1.0 / 20, index=idx, columns=codes)
     res = quantile_analysis(score, rtn, univ, n_quantiles=4, buffer=0.1)
     assert list(res.returns.columns) == ["Q1", "Q2", "Q3", "Q4", "spread"]
+    assert res.top == "Q4" and res.bottom == "Q1"
     assert len(res.returns) == 5
-    for q in range(1, 5):
-        sums = res.weights[q].sum(axis=1)
+    for label in res.labels:
+        sums = res.weights[label].sum(axis=1)
         assert np.allclose(sums, 1.0)
+    # Q4（既定の最上位）は最もスコアの高い銘柄群、spread = Q4 − Q1
+    top_members = res.weights["Q4"].notna()
+    bottom_members = res.weights["Q1"].notna()
+    assert (
+        score.where(top_members).mean(axis=1) > score.where(bottom_members).mean(axis=1)
+    ).all()
+    assert np.allclose(res.returns["spread"], res.returns["Q4"] - res.returns["Q1"])
+    # q1_is_top=True で従来の規約
+    old = quantile_analysis(score, rtn, univ, n_quantiles=4, buffer=0.1, q1_is_top=True)
+    assert old.top == "Q1" and np.allclose(old.returns["Q1"], res.returns["Q4"])
 
 
 def test_weight_portfolio_treats_nan_as_not_member() -> None:
