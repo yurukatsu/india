@@ -133,7 +133,7 @@ def build(
         "A=%s %s, B=%s %s, universe %s", score_a, a.shape, score_b, b.shape, univ.shape
     )
     lines = [
-        f"# {group}",
+        f"## `{score_a}` × `{score_b}`",
         "",
         f"`{score_a}`（A）と `{score_b}`（B）の複合スコア。各月ユニバース内で両者を Blom 正規スコアに変換し、",
         "`w·z_A + (1−w)·z_B` を再 Blom 化したもの（片方しか無い銘柄は存在する方のみ）。`scripts/build_blend.py` で生成。",
@@ -162,9 +162,23 @@ def build(
         lines.append(
             f"| `{name}` | {w}% | {100 - w}% | {to_int(blended.index.min())}〜{to_int(blended.index.max())} |"
         )
-    (input_root / "alpha" / group / "README.md").write_text(
-        "\n".join(lines) + "\n", encoding="utf-8"
-    )
+    readme = input_root / "alpha" / group / "README.md"
+    header, body = "\n".join(lines[:5]), "\n".join(lines[5:])
+    if readme.exists() and header not in readme.read_text(encoding="utf-8"):
+        # 既存の README（別の組み合わせの記載）に追記する
+        readme.write_text(
+            readme.read_text(encoding="utf-8") + "\n" + header + "\n" + body + "\n",
+            encoding="utf-8",
+        )
+    elif readme.exists():
+        existing = readme.read_text(encoding="utf-8")
+        readme.write_text(
+            existing.split(header)[0] + header + "\n" + body + "\n", encoding="utf-8"
+        )
+    else:
+        readme.write_text(
+            "# 複合スコア\n\n" + header + "\n" + body + "\n", encoding="utf-8"
+        )
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
