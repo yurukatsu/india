@@ -33,11 +33,10 @@ uv run python scripts/build_input.py all --out-dir input/another_universe
 │       ├── ai/ai_v1/YYYYMM.dat             # AI スコア（月末スナップショット）
 │       ├── alt/{id}_{name}/YYYYMM.dat      # オルタナティブファクター 36 本
 │       ├── cgo/{cgo_Nm}/YYYYMM.dat         # Capital Gain Overhang
-│       ├── composite/{score}/YYYYMM.dat    # 合成スコア v1
+│       ├── composite/{score}/YYYYMM.dat    # 合成スコア v1（comp_ew 等）と、comp_ew × 自作 AI の複合スコア（composite/README.md）
 │       ├── reprisk/repr_current_rri/YYYYMM.dat  # RepRisk Index（RRI）
 │       ├── attributes/{gics,size,cap,...}/YYYYMM.dat  # 銘柄属性（data/universe 由来、アルファではない）
 │       ├── my_ai/{score_name}/YYYYMM.dat  # 自作 AI モデル（india-ai-model の export、--my-ai-dir）
-│       ├── blend/{name}/YYYYMM.dat        # 複合スコア（scripts/build_blend.py。定義は blend/README.md）
 │       └── LIST.md
 └── template/                               # フォーマット定義
 ```
@@ -65,7 +64,7 @@ SEDOL・CUSIP・ISIN・GID が混入していないことを確認済み（`gid 
 | `alpha/ai/ai_v1` | `data/factor/ai` | 月内最終営業日の値 |
 | `alpha/alt` | `data/factor/alt/{id}` | `effective_yyyymmdd ≤ 月末` の行のみ（ルックアヘッド防止）。同一 `bid` は最新発効日を採用 |
 | `alpha/my_ai` | `../india-ai-model/output` | 自作 AI モデルのスコア（日付内 z スコア）を BID 検証のうえ再書き出し。`scores.csv` を同梱し LIST.md に説明・指標を載せる。ベンダーの `alpha/ai/ai_v1` とは別グループ |
-| `alpha/blend` | `input` の他の alpha | 2 スコアを各月 Blom 化して加重平均し再 Blom 化した複合スコア。`scripts/build_blend.py --score-a … --score-b … --weights …` で生成し、定義は `alpha/blend/README.md` に出力 |
+| `alpha/composite/comp_ew_{w}_ai_{..}`, `..._ai_hl1_{..}` | `composite/comp_ew`, `my_ai/ens_lgbm_dnn(_hl1)` | 2 スコアを各月 Blom 化して加重平均し再 Blom 化した複合スコア（`scripts/build_blend.py`）。定義は `alpha/composite/README.md` |
 | `alpha/attributes` | `data/universe` | `gics`（8 桁整数）/ `size` / `cap` / `shares` / `price` を数値スコアとして格納。業種・サイズ分析用 |
 | `alpha/cgo`, `alpha/composite`, `alpha/reprisk` | `data/cgo`, `data/composite`, `data/reprisk` | 列ごとに 1 スコア（`YYYYMM.pkl` / `YYYYMM.csv`）。NaN 行は除外 |
 
@@ -95,3 +94,14 @@ SEDOL・CUSIP・ISIN・GID が混入していないことを確認済み（`gid 
 
 - `alpha` はユニバースで絞り込んでいない（`alt` は universe 外の銘柄を含む）。利用側で `univ` と結合すること。
 - `data/turnover`, `data/map_code` は変換対象外。
+
+## 会社環境での再生成手順（最適化の入力に使う場合）
+
+```bash
+uv run python scripts/build_input.py all                       # univ / bm / risk_models / alpha（core, ai, alt, cgo, composite, attributes, my_ai）
+uv run python scripts/build_input.py alpha --alpha-groups my_ai --my-ai-dir /path/to/india-ai-model/output   # 自作 AI の export 先を指定
+uv run python scripts/build_blend.py --score-a composite/comp_ew --score-b my_ai/ens_lgbm_dnn     --weights 50 60 70 80 90 --name "comp_ew_{a}_ai_{b}"     --group composite
+uv run python scripts/build_blend.py --score-a composite/comp_ew --score-b my_ai/ens_lgbm_dnn_hl1 --weights 50 60 70 80 90 --name "comp_ew_{a}_ai_hl1_{b}" --group composite
+```
+
+最適化（bax）の `fn_alpha` には `input/msci_india_imi/alpha/composite/<score>/$L.dat` を指定する（ファイル形式は bax の alpha 入力と同じ `#bid score` + 空白区切り）。
