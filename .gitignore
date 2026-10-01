@@ -230,7 +230,7 @@ CLAUDE.md
 AGENTS.md
 
 # Generated input data (scripts/build_input.py)
-input/**/*.dat
+# dev ブランチでは .dat も追跡する（main では input/**/*.dat も無視）
 input/**/*.dat.gz
 input/**/*.pkl
 
