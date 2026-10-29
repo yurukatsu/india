@@ -60,3 +60,25 @@
 | `comp_ew_90_hcneu_10` | 90% | 10% | 200801〜202606 |
 | `comp_ew_80_hcneu_20` | 80% | 20% | 200801〜202606 |
 | `comp_ew_70_hcneu_30` | 70% | 30% | 200801〜202606 |
+
+## `composite/comp_ew` × `abn_to/abn_to`
+
+`composite/comp_ew`（A）と `abn_to/abn_to`（B）の複合スコア。各月ユニバース内で両者を Blom 正規スコアに変換し、
+`w·z_A + (1−w)·z_B` を再 Blom 化したもの（片方しか無い銘柄は存在する方のみ）。`scripts/build_blend.py` で生成。
+
+| スコア | A の重み | B の重み | 期間 |
+| --- | --- | --- | --- |
+| `comp_ew_90_abnto_10` | 90% | 10% | 200801〜202607 |
+| `comp_ew_80_abnto_20` | 80% | 20% | 200801〜202607 |
+| `comp_ew_70_abnto_30` | 70% | 30% | 200801〜202607 |
+
+## `composite/comp_ew` × `abn_to_neu/abn_to_neu`
+
+`composite/comp_ew`（A）と `abn_to_neu/abn_to_neu`（B）の複合スコア。各月ユニバース内で両者を Blom 正規スコアに変換し、
+`w·z_A + (1−w)·z_B` を再 Blom 化したもの（片方しか無い銘柄は存在する方のみ）。`scripts/build_blend.py` で生成。
+
+| スコア | A の重み | B の重み | 期間 |
+| --- | --- | --- | --- |
+| `comp_ew_90_abntoneu_10` | 90% | 10% | 200801〜202607 |
+| `comp_ew_80_abntoneu_20` | 80% | 20% | 200801〜202607 |
+| `comp_ew_70_abntoneu_30` | 70% | 30% | 200801〜202607 |
