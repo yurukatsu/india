@@ -11,6 +11,7 @@ alphaeval/
 ├── coverage.py    # カバレッジ
 ├── ic.py          # IC（Spearman / Pearson）、IC 要約、IC decay
 ├── quantile.py    # 分位分析（通常 / バッファ付き、等・時価・√時価ウェイト、キャップ、回転率）
+├── industry.py    # 業種間・業種内分解（業種中央値 / MAD 標準化、混合比率 w、業種 R²、EW ユニバース対比の分位超過）
 ├── metrics.py     # Return / Risk / R/R / MaxDD / Turnover / TE / IR / β
 ├── report.py      # アルファ横断レポート（Q5 EW/CW 超過・Q5−Q1・税後・IC の累積図、年率棒グラフ、指標表。drtn/srtn 対応）
 ├── tax/

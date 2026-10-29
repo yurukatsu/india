@@ -1,0 +1,104 @@
+factor,group,sign
+bp_est,Stock Value,1
+bp_act,Stock Value,1
+ep_est,Flow Value,1
+ep_act,Flow Value,1
+dp_est,Flow Value,1
+dp_act,Flow Value,1
+sp_est,Flow Value,1
+sp_act,Flow Value,1
+ebitdaev_est,Flow Value,1
+ebitdaev_act,Flow Value,1
+cfp_est,Flow Value,1
+cfp_act,Flow Value,1
+ocfp,Flow Value,1
+fcfp,Flow Value,1
+rdp,Flow Value,1
+maratio,Flow Value,1
+dlt_ep3,Flow Value,1
+dlt_ep6,Flow Value,1
+roe_est,Profitability,1
+roe_act,Profitability,1
+roa_est,Profitability,1
+roa_act,Profitability,1
+roic_est,Profitability,1
+roic_act,Profitability,1
+gpa_act,Profitability,1
+gm_act,Profitability,1
+nis_est,Profitability,1
+nis_act,Profitability,1
+ois_est,Profitability,1
+ois_act,Profitability,1
+ocfs,Profitability,1
+ltg,Growth,1
+sales_grw,Growth,1
+oi_grw,Growth,1
+eps_grw,Growth,1
+ni_grw,Growth,1
+ppe_grw,Growth,1
+ta_grw,Growth,1
+invent_grw,Growth,1
+eq_grw,Growth,1
+capex_grw,Growth,1
+ia,Growth,1
+csi,Shareholder Return,-1
+rev1p,Momentum,1
+rev1r,Momentum,1
+rev3p,Momentum,1
+rev3r,Momentum,1
+mom1,Momentum,1
+mom12,Momentum,1
+mom12_1,Momentum,1
+mom60,Momentum,1
+vola60,Volatility,-1
+skew60,Volatility,-1
+tover,Momentum,1
+illiq,Other,1
+doe,Shareholder Return,1
+acc_bs,Financial Quality,1
+acc_cf,Financial Quality,1
+xfin_bs,Financial Quality,-1
+xfin_cf,Financial Quality,-1
+xfin_sp,Financial Quality,-1
+curr,Financial Quality,1
+ta_to,Financial Quality,1
+rec_to,Financial Quality,1
+invent_to,Financial Quality,1
+acpy_to,Financial Quality,1
+ccc,Financial Quality,-1
+sales_bep,Financial Quality,-1
+eqr,Financial Quality,1
+wk_ta,Financial Quality,1
+re_ta,Profitability,1
+ebit_ta,Profitability,1
+mve_tl,Financial Quality,1
+sales_ta,Profitability,1
+eq_tl,Financial Quality,1
+tdint,Financial Quality,-1
+ocftd,Financial Quality,1
+peg_est,Flow Value,1
+peg_act,Flow Value,1
+dsr,Financial Quality,-1
+gmi,Financial Quality,-1
+aqi,Financial Quality,-1
+depi,Financial Quality,-1
+sgai,Financial Quality,-1
+levi,Financial Quality,-1
+eiss,Shareholder Return,1
+diss,Shareholder Return,1
+npop,Shareholder Return,1
+dlt_gpa_5y,Profitability,1
+dlt_roe_5y,Profitability,1
+dlt_roa_5y,Profitability,1
+dlt_ocfa_5y,Profitability,1
+dlt_gps_5y,Profitability,1
+td_ta,Financial Quality,-1
+tl_ta,Financial Quality,-1
+ni_ta,Profitability,1
+pti_tl,Profitability,1
+chin,Profitability,1
+oscore,Financial Quality,-1
+zscore,Financial Quality,1
+mscore,Financial Quality,-1
+prof,Profitability,1
+intwo,Profitability,-1
