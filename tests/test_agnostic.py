@@ -121,7 +121,9 @@ def test_winsorize_clips_ratio_and_keeps_assets() -> None:
     pd.testing.assert_frame_equal(win["ta"], ta)
 
 
-@pytest.mark.parametrize("model", ["ols_is", "ols", "ridge", "lasso", "rf", "lgbm"])
+@pytest.mark.parametrize(
+    "model", ["ols_is", "ts", "ols", "ridge", "lasso", "rf", "lgbm"]
+)
 def test_fair_value_recovers_planted_mispricing(model: str) -> None:
     rng = np.random.default_rng(1)
     n = 400

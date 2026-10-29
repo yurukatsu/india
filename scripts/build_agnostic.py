@@ -23,6 +23,7 @@
 | スコア | モデル | 目的変数 | 特徴量 | 予測 |
 | --- | --- | --- | --- | --- |
 | ``afa_ols_is`` | OLS | 時価総額（水準） | 財務項目の水準 | 学習に使った銘柄そのもの（論文どおり） |
+| ``afa_ts`` | Theil–Sen 型（部分標本 OLS の予測値の中央値） | 時価総額（水準） | 財務項目の水準 | in-sample（論文どおり） |
 | ``afa_ols`` | OLS | 時価総額（水準） | 財務項目の水準 | K 分割の交差推定 |
 | ``afa_ridge`` | Ridge（標準化、α は LOO） | 時価総額（水準） | 財務項目の水準 | K 分割の交差推定 |
 | ``afa_lasso`` | Lasso（標準化、α は内側 CV） | 時価総額（水準） | 財務項目の水準 | K 分割の交差推定 |
@@ -115,12 +116,14 @@ CORE_INPUTS: tuple[str, ...] = ("mv", "mve_tl", "tl_ta") + tuple(
     s.source for s in ITEM_SPECS
 )
 
-LINEAR_MODELS: tuple[str, ...] = ("ols_is", "ols", "ridge", "lasso")
+LINEAR_MODELS: tuple[str, ...] = ("ols_is", "ts", "ols", "ridge", "lasso")
 TREE_MODELS: tuple[str, ...] = ("rf", "lgbm")
 ALL_MODELS: tuple[str, ...] = LINEAR_MODELS + TREE_MODELS
 
 MODEL_DESCRIPTIONS: Mapping[str, str] = {
     "ols_is": "OLS（定数項あり）。学習に使った銘柄そのものを予測（論文どおりの in-sample 公正価値）",
+    "ts": "論文の Theil–Sen 型。無作為 100 銘柄の OLS で全銘柄を予測、を 1 万回繰り返し、銘柄ごとの予測値の中央値を公正価値とする"
+    "（論文は 10 万回。学習に使った銘柄も予測する in-sample）",
     "ols": "OLS（定数項あり）。K 分割の交差推定",
     "ridge": "Ridge。特徴量を学習データで標準化し、α は LOO（RidgeCV、10^-4〜10^4）で選ぶ。K 分割の交差推定",
     "lasso": "Lasso。特徴量を学習データで標準化し、α は内側 5 分割 CV（LassoCV）で選ぶ。K 分割の交差推定",
@@ -297,6 +300,50 @@ def make_estimator(model: str, seed: int) -> object:
     raise ValueError(f"未知のモデル: {model}")
 
 
+def theil_sen_fair_value(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_sub: int = 100,
+    n_draws: int = 10_000,
+    seed: int = 0,
+) -> np.ndarray:
+    """論文の Theil–Sen 型推定で公正価値を求める。
+
+    無作為に選んだ ``n_sub`` 銘柄で定数項付き OLS を推定して全銘柄の予測値を計算する、を ``n_draws`` 回繰り返し、
+    **銘柄ごとに予測値の中央値**を取る（係数の中央値ではない）。超大型株のような外れた銘柄が係数を
+    歪める水準回帰の弱点を和らげる。論文は 100 銘柄 × 10 万回。中央値は 1 万回でほぼ安定する。
+
+    Args:
+        x (np.ndarray): N × K の特徴量。
+        y (np.ndarray): 長さ N の目的変数。
+        n_sub (int): 1 回の推定に使う銘柄数（N 以上なら N − 1 に切り詰める）。
+        n_draws (int): 繰り返し回数。
+        seed (int): 乱数シード。
+
+    Returns:
+        np.ndarray: 長さ N の予測値の中央値。
+
+    Examples:
+        >>> rng = np.random.default_rng(0)
+        >>> x = rng.uniform(1, 10, size=(300, 2))
+        >>> y = 3 * x[:, 0] + 2 * x[:, 1]
+        >>> y[0] = 1e4  # 外れ値 1 銘柄
+        >>> p = theil_sen_fair_value(x, y, n_draws=500)
+        >>> bool(np.allclose(p[1:], 3 * x[1:, 0] + 2 * x[1:, 1]))
+        True
+    """
+    rng = np.random.default_rng(seed)
+    n = len(y)
+    m = min(n_sub, n - 1)
+    design = np.column_stack([np.ones(n), x])
+    preds = np.empty((n_draws, n), dtype=np.float32)
+    for b in range(n_draws):
+        idx = rng.choice(n, size=m, replace=False)
+        beta = np.linalg.lstsq(design[idx], y[idx], rcond=None)[0]
+        preds[b] = design @ beta
+    return np.median(preds, axis=0).astype(float)
+
+
 def fair_value(
     model: str,
     x_level: np.ndarray,
@@ -329,7 +376,9 @@ def fair_value(
     is_tree = model in TREE_MODELS
     x = x_tree if is_tree else x_level
     y = np.log(mv) if is_tree else mv
-    if model == "ols_is":
+    if model == "ts":
+        pred = theil_sen_fair_value(x, y, seed=seed)
+    elif model == "ols_is":
         pred = make_estimator(model, seed).fit(x, y).predict(x)
     else:
         pred = np.empty(len(y))
